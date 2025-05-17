@@ -5436,7 +5436,7 @@ MonoBehaviour:
   lvPanel: {fileID: 2146100150}
   topPosY: 250
   middlePosY: 0
-  tweenDuration: 0.3
+  tweenDuration: 0.2
   gridParent: {fileID: 1703605973}
   gridPrefabs:
   - {fileID: 1425787130584275936, guid: faa3013dbfa53fc4eb4910a2966a39b7, type: 3}

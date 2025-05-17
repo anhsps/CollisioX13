@@ -11,11 +11,12 @@ using System.Linq;
 public class GameManager13 : Singleton<GameManager13>
 {
     public static int level;
+
     [SerializeField] private TextMeshProUGUI lvText;
-    [SerializeField] private GameObject nextBtn_win, lvBtn_win;//
-    [SerializeField] private GameObject winMenu, /*loseMenu, */pauseMenu, lvMenu;
-    [SerializeField] private RectTransform winPanel, /*losePanel, */pausePanel, lvPanel;
-    [SerializeField] private float topPosY = 250f, middlePosY, tweenDuration = 0.3f;
+    [SerializeField] private GameObject nextBtn_win, lvBtn_win;
+    [SerializeField] private GameObject winMenu, pauseMenu, lvMenu;
+    [SerializeField] private RectTransform winPanel, pausePanel, lvPanel;
+    [SerializeField] private float topPosY = 250f, middlePosY, tweenDuration = 0.2f;
     private Button[] btns;
     private int maxLV;
     private bool playMaxLV;
@@ -40,12 +41,9 @@ public class GameManager13 : Singleton<GameManager13>
                 btn.interactable = false;
         }
 
-        //retryBtn.interactable = false;
-        //pauseBtn.interactable = false;
         Invoke(nameof(ActiveButton), 1f);
 
         await HidePanel(winMenu, winPanel);
-        //await HidePanel(loseMenu, losePanel);
         await HidePanel(pauseMenu, pausePanel);
         await HidePanel(lvMenu, lvPanel);
     }
@@ -54,29 +52,32 @@ public class GameManager13 : Singleton<GameManager13>
 
     private void LoadLevel(int levelIndex)
     {
-        if (levelIndex < 1 || levelIndex > gridPrefabs.Length) levelIndex = 1;
-
         maxLV = gridPrefabs.Length;
+        if (levelIndex < 1 || levelIndex > maxLV) levelIndex = 1;
         if (levelIndex == maxLV) playMaxLV = true;
         nextBtn_win.SetActive(!playMaxLV);
         lvBtn_win.SetActive(playMaxLV);
 
         PlayerPrefs.SetInt("CurrentLevel", levelIndex);
 
-        if (lvText) lvText.text = "LEVEL " + (levelIndex < 10 ? "0" + levelIndex : levelIndex);
+        if (lvText) lvText.text = "LEVEL " + levelIndex.ToString("00");
 
-        CreateGrid(levelIndex);
-        Vector2Int gridSize = GetGridSize(gridParent);
-        UpdateCamera(gridSize);
+        if (gridPrefabs.Length > 0) StartCoroutine(CreateGrid(levelIndex));
     }
 
-    private void CreateGrid(int levelIndex)
+    private IEnumerator CreateGrid(int levelIndex)
     {
         foreach (Transform child in gridParent)
             Destroy(child.gameObject);
+        yield return null;// wait destroy complete
 
         if (gridPrefabs[levelIndex - 1] != null)
+        {
             Instantiate(gridPrefabs[levelIndex - 1], gridParent);
+            UpdateCamera(GetGridSize(gridParent));
+
+            JellyMerge.Instance.GetJellyBlocks();
+        }
     }
 
     private Vector2Int GetGridSize(Transform gridParent)
@@ -115,13 +116,20 @@ public class GameManager13 : Singleton<GameManager13>
     }
 
     public void Retry() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    public void NextLV() => SetCurrentLV(level + 1);
 
-    public void NextLV()
+    public void UnlockNextLevel()
     {
-        PlayerPrefs.SetInt("CurrentLevel", level + 1);
+        int unlockedLevel = PlayerPrefs.GetInt("UnlockedLevel", 1);
+        if (level >= unlockedLevel && level < maxLV)
+            PlayerPrefs.SetInt("UnlockedLevel", level + 1);
+    }
+
+    public void SetCurrentLV(int levelIndex)
+    {
+        PlayerPrefs.SetInt("CurrentLevel", levelIndex);
         PlayerPrefs.Save();
-        Retry();
-        //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        SceneManager.LoadScene("1");
     }
 
     public void PauseGame() => OpenMenu(pauseMenu, pausePanel, 1);
@@ -138,8 +146,6 @@ public class GameManager13 : Singleton<GameManager13>
         UnlockNextLevel();
         OpenMenu(winMenu, winPanel, 2);
     }
-
-    //public void GameLose() => OpenMenu(loseMenu, losePanel, 3);
 
     private void OpenMenu(GameObject menu, RectTransform panel, int soundIndex)
     {
@@ -159,25 +165,10 @@ public class GameManager13 : Singleton<GameManager13>
         if (level != maxLV) OpenMenu(pauseMenu, pausePanel, 1);
     }
 
-    public void UnlockNextLevel()
-    {
-        int unlockedLevel = PlayerPrefs.GetInt("UnlockedLevel", 1);
-        if (level >= unlockedLevel && level <= maxLV)
-            PlayerPrefs.SetInt("UnlockedLevel", level + 1);
-    }
-
-    //public void SetCurrentLV(int levelIndex) => SceneManager.LoadScene((level = levelIndex).ToString());
-    public void SetCurrentLV(int levelIndex)
-    {
-        PlayerPrefs.SetInt("CurrentLevel", levelIndex);
-        PlayerPrefs.Save();
-        Retry();
-    }
-
     private void ShowPanel(GameObject menu, RectTransform panel)
     {
-        menu.SetActive(true);
         Time.timeScale = 0f;
+        menu.SetActive(true);
         menu.GetComponent<CanvasGroup>().DOFade(1, tweenDuration).SetUpdate(true);
         panel.DOAnchorPosY(middlePosY, tweenDuration).SetUpdate(true);
     }

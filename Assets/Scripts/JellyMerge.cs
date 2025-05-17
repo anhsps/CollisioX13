@@ -15,7 +15,7 @@ public class JellyMerge : Singleton<JellyMerge>
     // Start is called before the first frame update
     void Start()
     {
-        jellyBlocks = new List<JellyBlock>(FindObjectsOfType<JellyBlock>());
+        GetJellyBlocks();
     }
 
     // Update is called once per frame
@@ -41,6 +41,9 @@ public class JellyMerge : Singleton<JellyMerge>
             return dir.x > 0 ? Vector3Int.right : Vector3Int.left;
         else return dir.y > 0 ? Vector3Int.forward : Vector3Int.back;
     }
+
+    public void GetJellyBlocks()
+        => jellyBlocks = new List<JellyBlock>(FindObjectsOfType<JellyBlock>());
 
     public void RemoveBlock(JellyBlock block)
     {
